@@ -1,7 +1,10 @@
 package main
 
-import chinesschess "github.com/herschel-ma/SimpleChess/ChinessChess"
+import (
+	"github.com/herschel-ma/SimpleChess/ChineseChess"
+)
 
 func main() {
-	chinesschess.NewGame()
+	ChineseChess.NewGame()
+	// res.FileToSlice("./res", "./ChineseChess")
 }
