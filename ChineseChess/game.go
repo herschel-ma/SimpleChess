@@ -11,6 +11,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/audio"
 	"github.com/hajimehoshi/ebiten/v2/audio/wav"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 type Game struct {
@@ -20,10 +21,17 @@ type Game struct {
 	singlePosition *Position             // 棋局单例
 	bFilpped       bool                  // 是否翻转棋盘
 	mvLast         int                   // 上一步棋
-	sqSelected     int                   // 需中的格子的值
+	sqSelected     int                   // 选中的格子的值
 }
 
 func (g *Game) Update() error {
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		x, y := ebiten.CursorPosition()
+		// fmt.Printf("点击了:%d, %d", x, y)
+		xPos := Left + (x-BoardEdge)/SquareSize
+		yPos := Top + (y-BoardEdge)/SquareSize
+		g.clickSquare(xPos, yPos)
+	}
 	return nil
 }
 
@@ -97,12 +105,15 @@ func (g *Game) LoadResource() bool {
 
 // playAudio 播放音效
 func (g *Game) playAudio(key int) bool {
-	if player, ok := g.audios[key]; ok {
-		player.Rewind()
+	if player, ok := g.audios[key]; !ok {
+		return false
+	} else {
+		if err := player.Rewind(); err != nil {
+			fmt.Println(err)
+			return false
+		}
 		player.Play()
 		return true
-	} else {
-		return false
 	}
 }
 
@@ -139,11 +150,43 @@ func (g *Game) drawBoard(screen *ebiten.Image) {
 			sq := squareXY(x, y)
 			pc := g.singlePosition.ucpcSquares[sq]
 			if pc != 0 {
-				g.drawPiece(xPos, yPos, screen, g.images[pc])
+				g.drawPiece(xPos, yPos+5, screen, g.images[pc])
 			}
 			if sq == g.sqSelected || sq == src(g.mvLast) || sq == dst(g.mvLast) {
 				g.drawPiece(xPos, yPos, screen, g.images[ImgSelect])
 			}
 		}
+	}
+}
+
+// clickSquare 点击格子后的处理
+func (g *Game) clickSquare(xPos, yPos int) {
+	// fmt.Println(xPos, yPos)
+	// 棋子的值，比如说19
+	sq := squareXY(xPos, yPos) // 0-255
+	piece := 0
+	if !g.bFilpped {
+		piece = g.singlePosition.ucpcSquares[sq]
+	} else {
+		piece = g.singlePosition.ucpcSquares[squareFlip(sq)]
+	}
+	// 获得红黑标记
+	if (piece & sideTag(g.singlePosition.sdPlayer)) != 0 {
+		// 点击了自己方的棋子
+		// 直接选中个这棋子
+		g.sqSelected = sq
+		g.playAudio(MusicSelect)
+	} else if g.sqSelected != 0 {
+		// 点击的不是自己方的棋子，那么直接走这个棋子
+		mv := move(g.sqSelected, sq)
+		g.singlePosition.makeMove(mv)
+		// 把我们的选中的格子清0
+		g.sqSelected = 0
+		if piece == 0 {
+			g.playAudio(MusicPut)
+		} else {
+			g.playAudio(MusicEat)
+		}
+		// 如果不符合走法，不做处理
 	}
 }

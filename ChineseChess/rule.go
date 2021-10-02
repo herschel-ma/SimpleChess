@@ -42,9 +42,9 @@ func (p *Position) delPiece(sq int) {
 func (p *Position) movePiece(mv int) {
 	sqSrc := src(mv)
 	sqDst := dst(mv)
-	p.delPiece(sqSrc)
-	pc := p.ucpcSquares[sqSrc]
 	p.delPiece(sqDst)
+	pc := p.ucpcSquares[sqSrc]
+	p.delPiece(sqSrc)
 	p.addPiece(sqDst, pc)
 }
 
