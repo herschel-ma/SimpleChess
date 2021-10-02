@@ -11,7 +11,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/audio"
 	"github.com/hajimehoshi/ebiten/v2/audio/wav"
-	"github.com/herschel-ma/SimpleChess/res"
 )
 
 type Game struct {
@@ -19,6 +18,9 @@ type Game struct {
 	audios         map[int]*audio.Player // 音效
 	audioContext   *audio.Context        // 音效器
 	singlePosition *Position             // 棋局单例
+	bFilpped       bool                  // 是否翻转棋盘
+	mvLast         int                   // 上一步棋
+	sqSelected     int                   // 需中的格子的值
 }
 
 func (g *Game) Update() error {
@@ -26,13 +28,7 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	imageFile, _, err := image.Decode(bytes.NewReader(res.ImgChessBoard))
-	if err != nil {
-		log.Fatal("load ChessBoard fail, err:", err)
-	}
-	img := ebiten.NewImageFromImage(imageFile)
-	op := &ebiten.DrawImageOptions{}
-	screen.DrawImage(img, op)
+	g.drawBoard(screen)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -61,6 +57,7 @@ func NewGame() bool {
 	ebiten.SetWindowTitle("中国象棋")
 	// 后端初始化棋盘
 	game.singlePosition.startup()
+	// fmt.Printf("p.ucpcSquares: %#v", game.singlePosition.ucpcSquares)
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
 		return false
@@ -106,5 +103,47 @@ func (g *Game) playAudio(key int) bool {
 		return true
 	} else {
 		return false
+	}
+}
+
+// drawPiece 绘制棋子
+func (g *Game) drawPiece(x, y int, screen, img *ebiten.Image) {
+	if img == nil {
+		return
+	}
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(float64(x), float64(y))
+	screen.DrawImage(img, op)
+}
+
+// drawBoard 绘制棋盘，并且加载棋子的位置
+func (g *Game) drawBoard(screen *ebiten.Image) {
+	// 棋盘
+	if v, ok := g.images[ImgChessBoard]; ok {
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(0, 0)
+		screen.DrawImage(v, op)
+	}
+	// 棋子
+	for x := Left; x <= Right; x++ {
+		for y := Top; y <= Bottom; y++ {
+			xPos, yPos := 0, 0
+			if g.bFilpped {
+				xPos = BoardEdge + (xFlip(x)-Left)*SquareSize
+				yPos = BoardEdge + (yFlip(y)-Top)*SquareSize
+			} else {
+				xPos = BoardEdge + (x-Left)*SquareSize
+				yPos = BoardEdge + (y-Top)*SquareSize
+			}
+			// sq -> [0, 255]
+			sq := squareXY(x, y)
+			pc := g.singlePosition.ucpcSquares[sq]
+			if pc != 0 {
+				g.drawPiece(xPos, yPos, screen, g.images[pc])
+			}
+			if sq == g.sqSelected || sq == src(g.mvLast) || sq == dst(g.mvLast) {
+				g.drawPiece(xPos, yPos, screen, g.images[ImgSelect])
+			}
+		}
 	}
 }
