@@ -153,7 +153,7 @@ const (
 	PieceBing
 )
 
-// LegalSpan 辅助数组，判断步长是否符合特定走法， 1 = 帅/将， 2=士， 3=象
+// ccLegalSpan 辅助数组，判断步长是否符合特定走法， 1 = 帅/将， 2=士， 3=象
 var ccLegalSpan = [512]int{
 	0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -190,7 +190,7 @@ var ccLegalSpan = [512]int{
 	0, 0, 0, 0, 0, 0, 0,
 }
 
-// MaPin 辅助数组，判断马是否蹩脚
+// ccMaPin 辅助数组，判断马是否蹩脚
 var ccMaPin = [512]int{
 	0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -227,31 +227,31 @@ var ccMaPin = [512]int{
 	0, 0, 0, 0, 0, 0, 0,
 }
 
-// JiangDelta 帅/将的步长
+// ccJiangDelta 帅/将的步长
 var ccJiangDelta = [4]int{-16, -1, 1, 16}
 
-// ShiDelta 士的步长
+// ccShiDelta 士的步长
 var ccShiDelta = [4]int{-17, -15, 15, 17}
 
-// MaDelta 马的步长 -- 要注意和马腿数组对应，这里是将的步长
+// ccMaDelta 马的步长 -- 要注意和马腿数组对应，这里是将的步长
 var ccMaDelta = [4][2]int{
 	{-33, -31}, {-18, 14}, {-14, 18}, {31, 33},
 }
 
-// MaCheckDelta 检查马是否将军的步长
+// ccMaCheckDelta 检查马是否将军的步长
 var ccMaCheckDelta = [4][2]int{{-33, -18}, {-31, -14}, {14, 31}, {18, 33}}
 
-// jiangSpan 走法是否符合帅/将的步长
+// ccjiangSpan 走法是否符合帅/将的步长
 func ccJiangSpan(sqSrc, sqDst int) bool {
 	return ccLegalSpan[sqDst-sqSrc+256] == 1
 }
 
-// shiSpan 走法是否符合士的步长
+// ccshiSpan 走法是否符合士的步长
 func ccShiSpan(sqSrc, sqDst int) bool {
 	return ccLegalSpan[sqDst-sqSrc+256] == 2
 }
 
-// xiangSpan 走法是否符合士的步长
+// ccxiangSpan 走法是否符合士的步长
 func ccXiangSpan(sqSrc, sqDst int) bool {
 	return ccLegalSpan[sqDst-sqSrc+256] == 3
 }

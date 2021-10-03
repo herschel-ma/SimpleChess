@@ -194,15 +194,17 @@ func (g *Game) clickSquare(xPos, yPos int) {
 	} else if g.sqSelected != 0 {
 		// 点击的不是自己方的棋子，那么直接走这个棋子
 		mv := move(g.sqSelected, sq)
-		g.singlePosition.makeMove(mv)
-		// 保存上一步走法
-		g.mvLast = mv
-		// 把我们的选中的格子清0
-		g.sqSelected = 0
-		if piece == 0 {
-			g.playAudio(MusicPut)
-		} else {
-			g.playAudio(MusicEat)
+		if g.singlePosition.legalMove(mv) {
+			g.singlePosition.makeMove(mv)
+			// 保存上一步走法
+			g.mvLast = mv
+			// 把我们的选中的格子清0
+			g.sqSelected = 0
+			if piece == 0 {
+				g.playAudio(MusicPut)
+			} else {
+				g.playAudio(MusicEat)
+			}
 		}
 		// 如果不符合走法，不做处理
 	}
