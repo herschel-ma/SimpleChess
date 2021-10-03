@@ -127,6 +127,17 @@ func (g *Game) drawPiece(x, y int, screen, img *ebiten.Image) {
 	screen.DrawImage(img, op)
 }
 
+// drawPieceScale 绘制棋子
+func (g *Game) drawPieceScale(x, y, scaleX, scaleY float64, screen, img *ebiten.Image) {
+	if img == nil {
+		return
+	}
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(x, y)
+	op.GeoM.Scale(scaleX, scaleY)
+	screen.DrawImage(img, op)
+}
+
 // drawBoard 绘制棋盘，并且加载棋子的位置
 func (g *Game) drawBoard(screen *ebiten.Image) {
 	// 棋盘
@@ -152,7 +163,11 @@ func (g *Game) drawBoard(screen *ebiten.Image) {
 			if pc != 0 {
 				g.drawPiece(xPos, yPos+5, screen, g.images[pc])
 			}
-			if sq == g.sqSelected || sq == src(g.mvLast) || sq == dst(g.mvLast) {
+			if sq == g.sqSelected {
+				const scaleParam = 1.02
+				g.drawPieceScale(float64(xPos)/scaleParam, float64(yPos)/scaleParam, scaleParam, scaleParam, screen, g.images[pc])
+			}
+			if sq == src(g.mvLast) || sq == dst(g.mvLast) {
 				g.drawPiece(xPos, yPos, screen, g.images[ImgSelect])
 			}
 		}
@@ -180,6 +195,8 @@ func (g *Game) clickSquare(xPos, yPos int) {
 		// 点击的不是自己方的棋子，那么直接走这个棋子
 		mv := move(g.sqSelected, sq)
 		g.singlePosition.makeMove(mv)
+		// 保存上一步走法
+		g.mvLast = mv
 		// 把我们的选中的格子清0
 		g.sqSelected = 0
 		if piece == 0 {
