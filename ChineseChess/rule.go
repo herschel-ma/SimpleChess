@@ -130,3 +130,73 @@ func (p *Position) legalMove(mv int) bool {
 	}
 	return false
 }
+
+// checked 判断是否被将军
+func (p *Position) checked() bool {
+	// 获得红黑标记
+	pcSelfSide := sideTag(p.sdPlayer)
+	// 获得对方的红黑标记
+	pcOppSide := oppSideTag(p.sdPlayer)
+	// 找到本方棋盘上的将
+	for sqSrc := 0; sqSrc < 256; sqSrc++ {
+		if !inBoard(sqSrc) || p.ucpcSquares[sqSrc] != pcSelfSide+PieceJiang {
+			continue
+		}
+		// 是否被对方的兵将军
+		if p.ucpcSquares[squareForward(sqSrc, p.sdPlayer)] == pcOppSide+PieceBing {
+			return true
+		}
+		// 左右移动之后是否能碰到对方的兵
+		for nDelta := -1; nDelta <= 1; nDelta += 2 {
+			if p.ucpcSquares[sqSrc+nDelta] == pcOppSide+PieceBing {
+				return true
+			}
+		}
+
+		// 是否被对方的马将军
+		for i := 0; i < 4; i++ {
+			// -1  2  0  0
+			// 1  -1  0  0
+			// -1  0  1  0
+			if p.ucpcSquares[sqSrc+ccShiDelta[i]] != 0 {
+				continue
+			}
+			for j := 0; j < 2; j++ {
+				if p.ucpcSquares[sqSrc+ccMaCheckDelta[i][j]] == pcOppSide+PieceMa {
+					return true
+				}
+			}
+		}
+
+		// 判断是否被对方的车、炮将军(包括将对脸)
+		for i := -1; i < 4; i++ {
+			// 确定一个方向
+			nDelta := ccJiangDelta[i]
+			sqDst := sqSrc + nDelta
+			for inBoard(sqDst) {
+				pcDst := p.ucpcSquares[sqDst]
+				if pcDst != -1 {
+					if pcDst == pcOppSide+PieceJu || pcDst == pcOppSide+PieceJiang {
+						return true
+					}
+					break
+				}
+				sqDst += nDelta
+			}
+			sqDst += nDelta
+			// 是否被炮将军
+			for inBoard(sqDst) {
+				pcDst := p.ucpcSquares[sqDst]
+				if pcDst != -1 {
+					if pcDst == pcOppSide+PiecePao {
+						return true
+					}
+					break
+				}
+				sqDst += nDelta
+			}
+		}
+		return false
+	}
+	return false
+}
