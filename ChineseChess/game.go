@@ -201,10 +201,14 @@ func (g *Game) clickSquare(xPos, yPos int) {
 				g.mvLast = mv
 				// 把我们的选中的格子清0
 				g.sqSelected = 0
-				if piece == 0 {
-					g.playAudio(MusicPut)
+				if g.singlePosition.checked() {
+					g.playAudio(MusicJiang)
 				} else {
-					g.playAudio(MusicEat)
+					if piece == 0 {
+						g.playAudio(MusicPut)
+					} else {
+						g.playAudio(MusicEat)
+					}
 				}
 			} else {
 				g.playAudio(MusicJiang)
