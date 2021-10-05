@@ -153,6 +153,8 @@ const (
 	PieceBing
 )
 
+const MaxGenMoves = 125
+
 // ccLegalSpan 辅助数组，判断步长是否符合特定走法， 1 = 帅/将， 2=士， 3=象
 var ccLegalSpan = [512]int{
 	0, 0, 0, 0, 0, 0, 0, 0, 0,

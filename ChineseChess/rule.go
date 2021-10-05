@@ -221,3 +221,172 @@ func (p *Position) checked() bool {
 	}
 	return false
 }
+
+//  generateMoves 生成所有的走法, Return 有多少走法
+func (p *Position) generateMoves(mvs []int) int {
+	numGenerateMVS := 0
+	// 获得红黑标记
+	pcSelfSide := sideTag(p.sdPlayer)
+	// 获得对方红黑标记
+	pcOppSide := oppSideTag(p.sdPlayer)
+	for sqSrc := 0; sqSrc < 256; sqSrc++ {
+		if !inBoard(sqSrc) {
+			continue
+		}
+		// 直到找到一个本方棋子
+		if p.ucpcSquares[sqSrc]&pcSelfSide == 0 {
+			continue
+		}
+
+		// 根据棋子确定走法
+		switch p.ucpcSquares[sqSrc] - pcSelfSide {
+		case PieceJiang:
+			for i := 0; i < 4; i++ {
+				sqDst := sqSrc + ccJiangDelta[i]
+				if !inFort(sqDst) {
+					continue
+				}
+				pcDst := p.ucpcSquares[sqDst]
+				// 包含了pcDst 是0的这种情况
+				if pcDst&pcSelfSide == 0 {
+					// 走法合理，保存到mvs
+					mv := move(sqSrc, sqDst)
+					mvs = append(mvs, mv)
+					// 将走法数加1
+					numGenerateMVS++
+				}
+			}
+		case PieceShi:
+			for i := 0; i < 4; i++ {
+				sqDst := sqSrc + ccShiDelta[i]
+				if !inFort(sqDst) {
+					continue
+				}
+				pcDst := p.ucpcSquares[sqDst]
+				if pcDst&pcSelfSide == 0 {
+					mvs = append(mvs, move(sqSrc, sqDst))
+					numGenerateMVS++
+				}
+			}
+		case PieceXiang:
+			for i := 0; i < 4; i++ {
+				sqDst := sqSrc + ccShiDelta[i]
+				if !(inBoard(sqDst) && noRiver(sqDst, p.sdPlayer) && p.ucpcSquares[sqDst] == 0) {
+					continue
+				}
+				sqDst += ccShiDelta[i]
+				pcDst := p.ucpcSquares[sqDst]
+				if pcDst&pcSelfSide == 0 {
+					mvs = append(mvs, move(sqSrc, sqDst))
+					numGenerateMVS++
+				}
+			}
+		case PieceMa:
+			for i := 0; i < 4; i++ {
+				// 0  1  0
+				// 1  0  0
+				// 0  0  2
+				sqDst := sqSrc + ccJiangDelta[i]
+				if p.ucpcSquares[sqDst] != 0 {
+					continue
+				}
+				for j := 0; j < 2; j++ {
+					sqDst := sqSrc + ccMaDelta[i][j]
+					if !inBoard(sqDst) {
+						continue
+					}
+					pcDst := p.ucpcSquares[sqDst]
+					if pcDst&pcSelfSide == 0 {
+						mvs = append(mvs, move(sqSrc, sqDst))
+						numGenerateMVS++
+					}
+				}
+			}
+		case PieceJu:
+			for i := 0; i < 4; i++ {
+				nDelta := ccJiangDelta[i]
+				sqDst := sqSrc + nDelta
+				for inBoard(sqDst) {
+					pcDst := p.ucpcSquares[sqDst]
+					if pcDst == 0 {
+						mvs = append(mvs, move(sqSrc, sqDst))
+						numGenerateMVS++
+					} else {
+						if pcDst&pcOppSide != 0 {
+							mvs = append(mvs, move(sqSrc, sqDst))
+							numGenerateMVS++
+						}
+						break
+					}
+					sqDst += nDelta
+				}
+			}
+		case PiecePao:
+			for i := 0; i < 4; i++ {
+				nDelta := ccJiangDelta[i]
+				sqDst := sqSrc + nDelta
+				for inBoard(sqDst) {
+					pcDst := p.ucpcSquares[sqDst]
+					if pcDst == 0 {
+						mvs = append(mvs, move(sqSrc, sqDst))
+						numGenerateMVS++
+					} else {
+						break
+					}
+					sqDst += nDelta
+				}
+				sqDst += nDelta
+				for inBoard(sqDst) {
+					pcDst := p.ucpcSquares[sqDst]
+					if pcDst != 0 {
+						if pcDst&pcOppSide != 0 {
+							// 翻过山之后必须是对方的棋子
+							mvs = append(mvs, move(sqSrc, sqDst))
+							numGenerateMVS++
+						}
+						break
+					}
+					sqDst += nDelta
+				}
+			}
+		case PieceBing:
+			sqDst := squareForward(sqSrc, p.sdPlayer)
+			if inBoard(sqDst) {
+				pcDst := p.ucpcSquares[sqDst]
+				if pcDst&pcSelfSide == 0 {
+					// 空或者不是自己方的棋子
+					mvs = append(mvs, move(sqSrc, sqDst))
+					numGenerateMVS++
+				}
+				if hasRiver(sqSrc, p.sdPlayer) {
+					for nDelta := -1; nDelta < 2; nDelta += 2 {
+						sqDst := sqSrc + nDelta
+						if inBoard(sqDst) {
+							pcDst := p.ucpcSquares[sqDst]
+							if pcDst&pcSelfSide == 0 {
+								mvs = append(mvs, move(sqSrc, sqDst))
+								numGenerateMVS++
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return numGenerateMVS
+}
+
+// isMate 判断是否被将死
+func (p *Position) isMate() bool {
+	mvs := make([]int, MaxGenMoves) // 初始化一个保存走法的数组
+	nGeneMoveNum := p.generateMoves(mvs)
+	for i := 0; i < nGeneMoveNum; i++ {
+		pcCaptured := p.movePiece(mvs[i])
+		if !p.checked() {
+			p.undoMovePiece(mvs[i], pcCaptured)
+			return false
+		}
+		p.undoMovePiece(mvs[i], pcCaptured)
+	}
+	return true
+}
