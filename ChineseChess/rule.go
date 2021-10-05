@@ -39,19 +39,40 @@ func (p *Position) delPiece(sq int) {
 }
 
 // movePiece 搬一步棋
-func (p *Position) movePiece(mv int) {
+// 返回被吃的子
+func (p *Position) movePiece(mv int) int {
 	sqSrc := src(mv)
 	sqDst := dst(mv)
+	pcCaptured := p.ucpcSquares[sqDst]
 	p.delPiece(sqDst)
 	pc := p.ucpcSquares[sqSrc]
 	p.delPiece(sqSrc)
 	p.addPiece(sqDst, pc)
+	return pcCaptured
 }
 
 // makeMove 走一步棋
-func (p *Position) makeMove(mv int) {
-	p.movePiece(mv)
+// 被将军之后不让走这步棋去送死
+func (p *Position) makeMove(mv int) bool {
+	pcCaptured := p.movePiece(mv)
+	if p.checked() {
+		p.undoMovePiece(mv, pcCaptured)
+		return false
+	}
 	p.changeSide()
+	return true
+}
+
+// undoMovePiece movePiece的逆向操作
+func (p *Position) undoMovePiece(mv, pcCaptured int) {
+	sqSrc := src(mv)
+	sqDst := dst(mv)
+	pc := p.ucpcSquares[sqDst]
+	p.delPiece(sqDst)
+	p.addPiece(sqSrc, pc)
+	if pcCaptured != 0 {
+		p.addPiece(sqDst, pcCaptured)
+	}
 }
 
 // legalMove 判断走法是否合理
@@ -155,9 +176,9 @@ func (p *Position) checked() bool {
 
 		// 是否被对方的马将军
 		for i := 0; i < 4; i++ {
-			// -1  2  0  0
-			// 1  -1  0  0
-			// -1  0  1  0
+			// 0  2  0  0
+			// 2  -1  0  0
+			// 0  0  1  0
 			if p.ucpcSquares[sqSrc+ccShiDelta[i]] != 0 {
 				continue
 			}
@@ -169,13 +190,13 @@ func (p *Position) checked() bool {
 		}
 
 		// 判断是否被对方的车、炮将军(包括将对脸)
-		for i := -1; i < 4; i++ {
+		for i := 0; i < 4; i++ {
 			// 确定一个方向
 			nDelta := ccJiangDelta[i]
 			sqDst := sqSrc + nDelta
 			for inBoard(sqDst) {
 				pcDst := p.ucpcSquares[sqDst]
-				if pcDst != -1 {
+				if pcDst != 0 {
 					if pcDst == pcOppSide+PieceJu || pcDst == pcOppSide+PieceJiang {
 						return true
 					}
@@ -187,7 +208,7 @@ func (p *Position) checked() bool {
 			// 是否被炮将军
 			for inBoard(sqDst) {
 				pcDst := p.ucpcSquares[sqDst]
-				if pcDst != -1 {
+				if pcDst != 0 {
 					if pcDst == pcOppSide+PiecePao {
 						return true
 					}
