@@ -251,7 +251,7 @@ func (p *Position) generateMoves(mvs []int) int {
 				if pcDst&pcSelfSide == 0 {
 					// 走法合理，保存到mvs
 					mv := move(sqSrc, sqDst)
-					mvs = append(mvs, mv)
+					mvs[numGenerateMVS] = mv
 					// 将走法数加1
 					numGenerateMVS++
 				}
@@ -264,7 +264,7 @@ func (p *Position) generateMoves(mvs []int) int {
 				}
 				pcDst := p.ucpcSquares[sqDst]
 				if pcDst&pcSelfSide == 0 {
-					mvs = append(mvs, move(sqSrc, sqDst))
+					mvs[numGenerateMVS] = move(sqSrc, sqDst)
 					numGenerateMVS++
 				}
 			}
@@ -277,7 +277,7 @@ func (p *Position) generateMoves(mvs []int) int {
 				sqDst += ccShiDelta[i]
 				pcDst := p.ucpcSquares[sqDst]
 				if pcDst&pcSelfSide == 0 {
-					mvs = append(mvs, move(sqSrc, sqDst))
+					mvs[numGenerateMVS] = move(sqSrc, sqDst)
 					numGenerateMVS++
 				}
 			}
@@ -297,7 +297,7 @@ func (p *Position) generateMoves(mvs []int) int {
 					}
 					pcDst := p.ucpcSquares[sqDst]
 					if pcDst&pcSelfSide == 0 {
-						mvs = append(mvs, move(sqSrc, sqDst))
+						mvs[numGenerateMVS] = move(sqSrc, sqDst)
 						numGenerateMVS++
 					}
 				}
@@ -309,11 +309,11 @@ func (p *Position) generateMoves(mvs []int) int {
 				for inBoard(sqDst) {
 					pcDst := p.ucpcSquares[sqDst]
 					if pcDst == 0 {
-						mvs = append(mvs, move(sqSrc, sqDst))
+						mvs[numGenerateMVS] = move(sqSrc, sqDst)
 						numGenerateMVS++
 					} else {
 						if pcDst&pcOppSide != 0 {
-							mvs = append(mvs, move(sqSrc, sqDst))
+							mvs[numGenerateMVS] = move(sqSrc, sqDst)
 							numGenerateMVS++
 						}
 						break
@@ -328,7 +328,7 @@ func (p *Position) generateMoves(mvs []int) int {
 				for inBoard(sqDst) {
 					pcDst := p.ucpcSquares[sqDst]
 					if pcDst == 0 {
-						mvs = append(mvs, move(sqSrc, sqDst))
+						mvs[numGenerateMVS] = move(sqSrc, sqDst)
 						numGenerateMVS++
 					} else {
 						break
@@ -341,7 +341,7 @@ func (p *Position) generateMoves(mvs []int) int {
 					if pcDst != 0 {
 						if pcDst&pcOppSide != 0 {
 							// 翻过山之后必须是对方的棋子
-							mvs = append(mvs, move(sqSrc, sqDst))
+							mvs[numGenerateMVS] = move(sqSrc, sqDst)
 							numGenerateMVS++
 						}
 						break
@@ -355,7 +355,7 @@ func (p *Position) generateMoves(mvs []int) int {
 				pcDst := p.ucpcSquares[sqDst]
 				if pcDst&pcSelfSide == 0 {
 					// 空或者不是自己方的棋子
-					mvs = append(mvs, move(sqSrc, sqDst))
+					mvs[numGenerateMVS] = move(sqSrc, sqDst)
 					numGenerateMVS++
 				}
 				if hasRiver(sqSrc, p.sdPlayer) {
@@ -364,7 +364,7 @@ func (p *Position) generateMoves(mvs []int) int {
 						if inBoard(sqDst) {
 							pcDst := p.ucpcSquares[sqDst]
 							if pcDst&pcSelfSide == 0 {
-								mvs = append(mvs, move(sqSrc, sqDst))
+								mvs[numGenerateMVS] = move(sqSrc, sqDst)
 								numGenerateMVS++
 							}
 						}
@@ -380,6 +380,8 @@ func (p *Position) generateMoves(mvs []int) int {
 func (p *Position) isMate() bool {
 	mvs := make([]int, MaxGenMoves) // 初始化一个保存走法的数组
 	nGeneMoveNum := p.generateMoves(mvs)
+	// fmt.Println(nGeneMoveNum)
+	// fmt.Println(mvs)
 	for i := 0; i < nGeneMoveNum; i++ {
 		pcCaptured := p.movePiece(mvs[i])
 		if !p.checked() {

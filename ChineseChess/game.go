@@ -6,12 +6,17 @@ import (
 	"image"
 	"log"
 
+	"image/color"
 	_ "image/png"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/audio"
 	"github.com/hajimehoshi/ebiten/v2/audio/wav"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/hajimehoshi/ebiten/v2/text"
+	"golang.org/x/image/font"
+	"golang.org/x/image/font/opentype"
 )
 
 type Game struct {
@@ -22,6 +27,8 @@ type Game struct {
 	bFilpped       bool                  // 是否翻转棋盘
 	mvLast         int                   // 上一步棋
 	sqSelected     int                   // 选中的格子的值
+	bGameOver      bool                  // 标记游戏是否结束
+	showValue      string                // 展示内容
 }
 
 func (g *Game) Update() error {
@@ -37,6 +44,10 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	g.drawBoard(screen)
+	g.messagePost(screen)
+	if g.bGameOver {
+		g.messagePost(screen)
+	}
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -191,23 +202,29 @@ func (g *Game) clickSquare(xPos, yPos int) {
 		// 直接选中个这棋子
 		g.sqSelected = sq
 		g.playAudio(MusicSelect)
-	} else if g.sqSelected != 0 {
+	} else if g.sqSelected != 0 && !g.bGameOver {
 		// 点击的不是自己方的棋子，那么直接走这个棋子
 		mv := move(g.sqSelected, sq)
 		if g.singlePosition.legalMove(mv) {
 			if g.singlePosition.makeMove(mv) {
-
 				// 保存上一步走法
 				g.mvLast = mv
 				// 把我们的选中的格子清0
 				g.sqSelected = 0
-				if g.singlePosition.checked() {
-					g.playAudio(MusicJiang)
+				if g.singlePosition.isMate() {
+					// 被将死
+					g.showValue = "You Lose"
+					g.playAudio(MusicGameLose)
+					g.bGameOver = true
 				} else {
-					if piece == 0 {
-						g.playAudio(MusicPut)
+					if g.singlePosition.checked() {
+						g.playAudio(MusicJiang)
 					} else {
-						g.playAudio(MusicEat)
+						if piece == 0 {
+							g.playAudio(MusicPut)
+						} else {
+							g.playAudio(MusicEat)
+						}
 					}
 				}
 			} else {
@@ -216,4 +233,28 @@ func (g *Game) clickSquare(xPos, yPos int) {
 		}
 		// 如果不符合走法，不做处理
 	}
+}
+
+// messagePost 展示内容的函数
+func (g *Game) messagePost(screen *ebiten.Image) {
+	var mplusNormalFont font.Face
+	// 解析字体
+	f, err := opentype.Parse(fonts.MPlus1pRegular_ttf)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	// 初始化字体
+	mplusNormalFont, err = opentype.NewFace(f, &opentype.FaceOptions{
+		DPI:     72,
+		Size:    24,
+		Hinting: font.HintingFull, // Hinting selects how to quantize a vector font's glyph nodes
+	})
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	b := text.BoundString(mplusNormalFont, g.showValue)
+	// 展示内容
+	text.Draw(screen, g.showValue, mplusNormalFont, (BoardWidth-b.Dx())/2, (BoardHeight-b.Dy())/2, color.White)
 }
