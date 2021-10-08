@@ -33,6 +33,15 @@ type Game struct {
 
 func (g *Game) Update() error {
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		// 如果游戏结束之后，点击了之后就重新开始
+		if g.bGameOver {
+			g.mvLast = 0
+			g.sqSelected = 0
+			g.showValue = ""
+			// 重新初始化后端校验数组
+			g.singlePosition.startup()
+			g.bGameOver = false
+		}
 		x, y := ebiten.CursorPosition()
 		// fmt.Printf("点击了:%d, %d", x, y)
 		xPos := Left + (x-BoardEdge)/SquareSize
@@ -213,8 +222,13 @@ func (g *Game) clickSquare(xPos, yPos int) {
 				g.sqSelected = 0
 				if g.singlePosition.isMate() {
 					// 被将死
-					g.showValue = "You Lose"
-					g.playAudio(MusicGameLose)
+					if g.singlePosition.sdPlayer == 0 {
+						g.showValue = "You Lose"
+						g.playAudio(MusicGameLose)
+					} else {
+						g.showValue = "You Win"
+						g.playAudio(MusicGameWin)
+					}
 					g.bGameOver = true
 				} else {
 					if g.singlePosition.checked() {
